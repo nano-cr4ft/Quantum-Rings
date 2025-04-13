@@ -67,7 +67,7 @@ qc.append(QFT(bits, do_swaps=False).inverse(), control_reg)
 
 qc.measure(working_reg, out_reg)
 
-qr_provider = QuantumRingsProvider(token ="rings-200.inm2AQBhP6HljeZBxhFso18iyRr9F8ZX", name="manyatapathania@gmail.com")
+qr_provider = QuantumRingsProvider(token ="YOUR API TOKEN HERE", name="YOUR EMAIL HERE")
 mybackend = QrBackendV2(qr_provider, num_qubits = qc.num_qubits)
 qc_transpiled = transpile(qc, mybackend, initial_layout=[i for i in range(0, qc.num_qubits)])
 job = mybackend.run(qc_transpiled, shots = 1)
