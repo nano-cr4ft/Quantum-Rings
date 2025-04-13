@@ -1,0 +1,89 @@
+#installations
+!pip install QuantumRingsLib
+!pip install quantumrings-toolkit-qiskit
+!pip install qiskit==1.4.1
+
+#imports
+from qiskit import QuantumCircuit, transpile, QuantumRegister, ClassicalRegister
+from qiskit.circuit.library import DraperQFTAdder, PhaseEstimation, QFT
+from qiskit_aer import AerSimulator
+import QuantumRingsLib
+from QuantumRingsLib import QuantumRingsProvider
+from quantumrings.toolkit.qiskit import QrBackendV2
+from quantumrings.toolkit.qiskit import QrJobV1
+
+import random
+
+#essential helping functions
+def euler_gcd(a, b):
+  while a != 0:
+    a, b = b % a, a
+  return b
+
+def toBinary(n, bits):
+  binary = []
+  for x in range(bits):
+    binary.append(n % 2)
+    n //= 2
+  binary.reverse()
+  return binary
+
+def fromBinary(n):
+  sum = 0
+  for x in n:
+    sum = sum * 2 + x
+  return sum
+
+def getGoodCoprime(n):
+  a = random.randint(2, n)
+  if euler_gcd(a, n) != 1:
+    return getGoodCoprime(n)
+  return a
+
+#--REGISTERS & VARIABLES--#
+bits = 100
+working_reg = QuantumRegister(bits, name='working')
+control_reg = QuantumRegister(bits, name='control')
+n = 1048547
+a = getGoodCoprime(n)
+print(a)
+out_reg = ClassicalRegister(bits, name='out')
+
+def modular_exponentation(qc, a, N, control_qubits, target_qubits):
+  n = len(control_qubits)
+  for i in range(n):
+    power=2**i
+    a_power=pow(a,power, N)
+    for j in range(len(target_qubits)):
+      if(a_power>>j)&1:
+        qc.cx(control_qubits[i],target_qubits[j])
+qc = QuantumCircuit(working_reg, control_reg, out_reg)
+
+qc.h(working_reg)
+qc.h(control_reg)
+
+modular_exponentation(qc, a, n, control_reg, working_reg)
+qc.append(QFT(bits, do_swaps=False).inverse(), control_reg)
+
+qc.measure(working_reg, out_reg)
+
+qr_provider = QuantumRingsProvider(token ="rings-200.inm2AQBhP6HljeZBxhFso18iyRr9F8ZX", name="manyatapathania@gmail.com")
+mybackend = QrBackendV2(qr_provider, num_qubits = qc.num_qubits)
+qc_transpiled = transpile(qc, mybackend, initial_layout=[i for i in range(0, qc.num_qubits)])
+job = mybackend.run(qc_transpiled, shots = 1)
+
+result = job.result()
+counts = result.get_counts()
+resultVal = fromBinary([int(i) for i in max(counts, key=counts.get)])
+from fractions import Fraction
+r = Fraction(resultVal, 2**bits).limit_denominator(n).denominator # N = the number you're factoring
+print(r)  # Might output something like Fraction(2, 5)
+
+if r != 0:
+  val1 = euler_gcd(n, a**(r/2)-1)
+  val2 = euler_gcd(n, a**(r/2)+1)
+
+  if (val1 != 1):
+    print("Solution: ("+str(val1)+", "+ str(n/val1)+")")
+  elif (val2 != 1):
+    print("Solution: ("+str(val2)+", "+ str(n/val2)+")")
